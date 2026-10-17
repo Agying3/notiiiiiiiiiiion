@@ -1,0 +1,9 @@
+# 敏感文件，禁止入库
+*Account.txt
+*proxies*.txt
+*proxy*.txt
+tmp/
+research/*/tmp/
+*.log
+state-*.json
+.env
