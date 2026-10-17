@@ -1,4 +1,4 @@
-﻿# 敏感凭证与本地大文件不入库
+# 敏感凭证与本地大文件不入库
 Hotmail_37_Account.txt
 Outlook_37_Account.txt
 proxies.txt
@@ -14,3 +14,7 @@ senseauto-2.0.0/.venv/
 cloakbrowser-extracted/
 __pycache__/
 *.pyc
+# 手动抓包的原始会话、代理登记与浏览器 profile
+/Research/Notion/captures/manual/
+/Research/Notion/local/
+/notion-captures/

@@ -1,3 +1,5 @@
+﻿> **[勘误 2026-10-18 00:55]** 本文中「30 天 Business 试用」的说法已作废。实测与代码复核确认为 **14 天**，30 天仅限投流/创业/已付费叠加渠道。见 [06-试用14天更正.md](06-试用14天更正.md)。
+
 # Business 额度 + 试用能不能后补
 
 > 时间：2026-10-18 00:30
@@ -136,3 +138,4 @@ scripts/list_trial_ui.py                # 试用 UI 组件清单
 scripts/grep_reset_onboarding.py        # onboarding 重置 key
 scripts/grep_intent.py                  # intent 存储 key
 ```
+

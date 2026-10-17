@@ -17,21 +17,20 @@ import time
 from datetime import datetime, timezone
 
 import httpx
-from cloakbrowser import launch
+from cloakbrowser import launch_persistent_context
 
 if hasattr(sys.stdout, 'reconfigure'):
     sys.stdout.reconfigure(encoding='utf-8', errors='replace', line_buffering=True)
-ROOT = Path(__file__).resolve().parent
+ROOT = Path(__file__).resolve().parents[3]
 LABEL = sys.argv[1] if len(sys.argv) > 1 else 'run'
 stamp = datetime.now().strftime('%Y%m%d-%H%M%S')
-OUT = ROOT / 'notion-captures' / f'{LABEL}-{stamp}'
+OUT = ROOT / 'Research' / 'Notion' / 'captures' / 'manual' / f'{LABEL}-{stamp}'
 OUT.mkdir(parents=True)
 for folder in ['00-session', '01-requests', '02-bodies', '03-screenshots', '04-storage']:
     (OUT / folder).mkdir()
 SESSION = OUT / '00-session'
-USED = ROOT / 'used_proxies.txt'
-USED.touch(exist_ok=True)
-used_lines = {l.split('|')[0].strip() for l in USED.read_text(encoding='utf-8-sig').splitlines() if l.strip()}
+from capture_identity import used_hosts_and_ips, fingerprint_seed, reserve_identity
+used_lines = used_hosts_and_ips(ROOT)
 
 def save(path, obj):
     path.write_text(json.dumps(obj, ensure_ascii=False, indent=2), encoding='utf-8')
@@ -43,7 +42,7 @@ def log(kind, **data):
 print('CAPTURE_DIR=' + str(OUT), flush=True)
 lines = (ROOT / 'proxies.txt').read_text(encoding='utf-8-sig').splitlines()
 proxy_url = exit_ip = proxy_line = None
-for line in lines:
+for proxy_index, line in enumerate(lines, 1):
     line = line.strip()
     if not line or line.split(':')[0] in used_lines:
         continue
@@ -51,15 +50,22 @@ for line in lines:
         h, p, u, w = line.split(':', 3)
         candidate = str(httpx.URL('http://' + h + ':' + p, username=u, password=w))
         with httpx.Client(proxy=candidate, timeout=18) as client:
-            ip = client.get('https://api.ipify.org?format=json').json()['ip']
+            result = client.get('https://api.ipify.org?format=json')
+            result.raise_for_status()
+            ip = result.json()['ip']
+            if ip in used_lines:
+                continue
+            sdk = client.get('https://js.hcaptcha.com/1/api.js?render=explicit&onload=__hcaptchaOnLoad')
+            sdk.raise_for_status()
         proxy_url, exit_ip, proxy_line = candidate, ip, line
         break
     except Exception as exc:
         print('PROXY_SKIP=' + line.split(':')[0] + ' err=' + type(exc).__name__, flush=True)
 if not proxy_url:
     raise RuntimeError('no unused working proxy')
-USED.open('a', encoding='utf-8').write(f'{proxy_line}|{LABEL}-{stamp}|{exit_ip}\n')
-seed = secrets.randbelow(900000000) + 100000000
+reserve_identity(ROOT, h, p, exit_ip, proxy_index, f'{LABEL}-{stamp}')
+seed = fingerprint_seed(proxy_index, h, p)
+profile_dir = OUT / '05-profile.private'
 save(SESSION / 'environment.json', {
     'label': LABEL, 'createdUtc': datetime.now(timezone.utc).isoformat(),
     'browser': 'CloakBrowser', 'fingerprintSeed': seed, 'proxyExitIp': exit_ip,
@@ -67,8 +73,9 @@ save(SESSION / 'environment.json', {
 })
 print('PROXY_EXIT_IP=' + exit_ip, flush=True)
 print('FINGERPRINT_SEED=' + str(seed), flush=True)
-browser = launch(headless=False, humanize=False, proxy=proxy_url, args=[f'--fingerprint={seed}'])
-context = browser.new_context(record_har_path=str(OUT / 'full-network.har'),
+context = launch_persistent_context(str(profile_dir), headless=False, humanize=False,
+    proxy=proxy_url, args=[f'--fingerprint={seed}'],
+    record_har_path=str(OUT / 'full-network.har'),
     record_har_content='embed', record_har_mode='full', viewport=None)
 context.tracing.start(screenshots=True, snapshots=True, sources=False)
 requests = {}
@@ -114,6 +121,7 @@ def page_setup(page):
     page.on('console', lambda msg: log('console', level=msg.type, text=msg.text[:500]))
     page.on('pageerror', lambda exc: log('pageerror', error=str(exc)[:500]))
     page.on('framenavigated', lambda frame: log('navigation', url=frame.url))
+    page.on('websocket', websocket_setup)
 
 def websocket_setup(ws):
     log('websocket_open', url=ws.url)
@@ -131,6 +139,18 @@ context.on('requestfailed', lambda r: log('request_failed', id=requests.get(r), 
 context.on('page', page_setup)
 page = context.new_page()
 try:
+    page.goto('https://api.ipify.org?format=json', wait_until='domcontentloaded', timeout=60000)
+    browser_ip = json.loads(page.locator('body').inner_text())['ip']
+    if browser_ip != exit_ip or browser_ip in used_lines:
+        raise RuntimeError('Browser proxy exit does not match a fresh verified exit')
+    actual = page.evaluate('''() => ({userAgent: navigator.userAgent,
+        platform: navigator.platform, languages: navigator.languages,
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        screen: {width: screen.width, height: screen.height}})''')
+    save(SESSION / 'browser-verified.json', {'proxyExitIp': browser_ip,
+        'fingerprintSeed': seed, 'proxyIndex': proxy_index, 'profile': str(profile_dir),
+        'actualBrowserProperties': actual})
+    print('BROWSER_PROXY_VERIFIED=' + browser_ip, flush=True)
     page.goto('https://app.notion.com/signup', wait_until='domcontentloaded', timeout=90000)
     page.screenshot(path=str(OUT / '03-screenshots' / '000-signup-ready.png'))
     log('session_event', note='signup page ready; recorder stays alive until STOP file')
@@ -175,7 +195,7 @@ finally:
     except Exception as exc:
         log('finalize_error', error=str(exc))
     try:
-        context.close(); browser.close()
+        context.close()
     except Exception:
         pass
     save(SESSION / 'final-summary.json', {'requestCount': counter[0], 'harExists': (OUT / 'full-network.har').exists()})
