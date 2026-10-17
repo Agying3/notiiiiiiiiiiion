@@ -1,4 +1,6 @@
-# Notion 注册流程抓包报告
+# Notion 注册流程抓包报告（注册 #1）
+
+> **对照报告**：注册 #2（含 hCaptcha 全量捕获、Cookie/Storage 全量、跨账号残留实证）见 [notion-capture2/README.md](notion-capture2/README.md)
 
 - 时间：2026-10-17 22:58–23:01 (Asia/Shanghai)
 - 浏览器：Playwright MCP（Edge 155 / Chromium 155, Windows）
