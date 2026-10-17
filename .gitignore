@@ -1,9 +1,16 @@
-# 敏感文件，禁止入库
-*Account.txt
-*proxies*.txt
-*proxy*.txt
-tmp/
-research/*/tmp/
-*.log
-state-*.json
-.env
+﻿# 敏感凭证与本地大文件不入库
+Hotmail_37_Account.txt
+Outlook_37_Account.txt
+proxies.txt
+used_proxies.txt
+notion-captures/**/04-storage/
+notion-captures/**/02-bodies/
+notion-captures/**/*.har
+notion-captures/**/playwright-trace.zip
+notion-captures/**/final-state.private.json
+*.private.json
+mailviewer-local/node_modules/
+senseauto-2.0.0/.venv/
+cloakbrowser-extracted/
+__pycache__/
+*.pyc
