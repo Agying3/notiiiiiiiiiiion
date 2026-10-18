@@ -2,7 +2,7 @@
 *-Account.txt
 *account*.txt
 proxies.txt
-proxy*.txt
+*proxies*.txt
 used_proxies.txt
 *.private.json
 *.private.jsonl
@@ -10,7 +10,6 @@ used_proxies.txt
 # 本地运行产物
 Research/Notion/local/
 Research/Notion/tmp/
-Research/Notion/captures/
 __pycache__/
 *.pyc
 .venv/
@@ -21,10 +20,5 @@ notion-captures/
 playwright-trace.zip
 *profile*/
 
-# 第三方目录与打包残留（已从历史移除，不应再次入库）
-mailviewer-local/
-cloakbrowser-extracted/
-senseauto-2.0.0/
-mailviewer-*.png
-*proxies.txt
-*proxies*.txt
+# 与本研究无关的本地工具目录
+/tools/
