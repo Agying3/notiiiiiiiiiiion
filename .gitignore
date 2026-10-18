@@ -1,20 +1,22 @@
-# 敏感凭证与本地大文件不入库
-Hotmail_37_Account.txt
-Outlook_37_Account.txt
+# 凭据与账号文件（永不入库）
+*-Account.txt
+*account*.txt
 proxies.txt
+proxy*.txt
 used_proxies.txt
-notion-captures/**/04-storage/
-notion-captures/**/02-bodies/
-notion-captures/**/*.har
-notion-captures/**/playwright-trace.zip
-notion-captures/**/final-state.private.json
 *.private.json
-mailviewer-local/node_modules/
-senseauto-2.0.0/.venv/
-cloakbrowser-extracted/
+*.private.jsonl
+
+# 本地运行产物
+Research/Notion/local/
+Research/Notion/tmp/
+Research/Notion/captures/
 __pycache__/
 *.pyc
-# 手动抓包的原始会话、代理登记与浏览器 profile
-/Research/Notion/captures/manual/
-/Research/Notion/local/
-/notion-captures/
+.venv/
+
+# 抓包与浏览器 profile
+notion-captures/
+*.har
+playwright-trace.zip
+*profile*/
