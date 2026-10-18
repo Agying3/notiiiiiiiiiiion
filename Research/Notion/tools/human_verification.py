@@ -8,6 +8,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from http.cookiejar import Cookie
 import json
+import os
+from pathlib import Path
+import subprocess
+import tempfile
 import time
 import uuid
 from urllib.parse import urlsplit, unquote
@@ -177,8 +181,54 @@ class SendGuard:
             self.failure = HumanVerificationError(reason, help_text)
 
 
+def edge_executable() -> str:
+    for candidate in (r'C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe',
+                      r'C:\Program Files\Microsoft\Edge\Application\msedge.exe'):
+        if Path(candidate).exists():
+            return candidate
+    raise HumanVerificationError('EDGE_NOT_FOUND', '未找到 Microsoft Edge，可改用 --direct 或安装 Edge。', 2)
+
+
+def launch_plain_edge(profile_dir: Path, port: int, proxy_url: str | None):
+    """Start Edge as a normal process: no --enable-automation, no webdriver flag.
+
+    Playwright's own launch injects automation switches that sites can detect.
+    Attaching over CDP keeps the window indistinguishable from a user-started one
+    apart from the debugging port itself.
+    """
+    profile_dir.mkdir(parents=True, exist_ok=True)
+    command = [edge_executable(),
+               f'--remote-debugging-port={port}',
+               f'--user-data-dir={profile_dir}',
+               '--remote-allow-origins=*',
+               '--no-first-run', '--no-default-browser-check',
+               '--disable-features=msEdgeFirstRunExperience',
+               'about:blank']
+    if proxy_url:
+        parsed = urlsplit(proxy_url)
+        if parsed.hostname and parsed.port:
+            command.insert(1, f'--proxy-server={parsed.hostname}:{parsed.port}')
+    else:
+        command.insert(1, '--no-proxy-server')
+    return subprocess.Popen(command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+
+def connect_plain_edge(driver, port: int, timeout: float = 20.0):
+    """Poll the CDP endpoint until the plain Edge window is reachable."""
+    end = time.monotonic() + timeout
+    last = None
+    while time.monotonic() < end:
+        try:
+            return driver.chromium.connect_over_cdp(f'http://127.0.0.1:{port}')
+        except Exception as exc:
+            last = exc
+            time.sleep(0.5)
+    raise HumanVerificationError('BROWSER_ATTACH_FAILED', f'普通 Edge 启动后无法附着调试端口：{type(last).__name__}')
+
+
 def verify_and_send(*, email, device_id, client, evidence, proxy_url, expected_ip,
-                    deadline, timeout, utc_now, manager_factory=None) -> VerificationResult:
+                    deadline, timeout, utc_now, manager_factory=None,
+                    plain_edge: bool = False, profile_dir: Path | None = None) -> VerificationResult:
     """Wait for a person to use the official page; never click or solve a challenge."""
     options = proxy_options(proxy_url)
     if manager_factory is None:
@@ -190,6 +240,7 @@ def verify_and_send(*, email, device_id, client, evidence, proxy_url, expected_i
     until = min(deadline, time.monotonic() + timeout)
     guard = SendGuard(email, device_id, evidence, utc_now, allow_native_device=True)
     browser = context = manager = driver = None
+    edge_process = None
     closed = {'context': True, 'browser': True, 'driver': True}
     result = None
     def budget_ms():
@@ -202,10 +253,21 @@ def verify_and_send(*, email, device_id, client, evidence, proxy_url, expected_i
         driver = manager.start()
         closed['driver'] = False
         budget_ms()
-        browser = driver.chromium.launch(channel='msedge', headless=False, proxy=options,
-            args=['--no-proxy-server'] if options is None else [], timeout=budget_ms())
+        if plain_edge:
+            port = 9000 + (os.getpid() % 500)
+            target_profile = profile_dir or (Path(tempfile.gettempdir()) / f'plain-edge-{port}')
+            edge_process = launch_plain_edge(target_profile, port, proxy_url)
+            browser = connect_plain_edge(driver, port)
+            context = browser.contexts[0] if browser.contexts else browser.new_context()
+            evidence.event('browser_launch_mode', mode='plain_edge_cdp',
+                           note='No automation switches; attached over CDP')
+        else:
+            browser = driver.chromium.launch(channel='msedge', headless=False, proxy=options,
+                args=['--no-proxy-server'] if options is None else [], timeout=budget_ms())
+            context = None
         closed['browser'] = False
-        context = browser.new_context(locale='zh-CN', service_workers='block')
+        if not plain_edge:
+            context = browser.new_context(locale='zh-CN', service_workers='block')
         closed['context'] = False
         context.set_default_timeout(budget_ms())
         context.add_cookies(export_cookies(client))
@@ -216,16 +278,24 @@ def verify_and_send(*, email, device_id, client, evidence, proxy_url, expected_i
         context.on('response', guard.response)
         context.on('requestfailed', guard.request_failed)
         evidence.event('browser_opened', purpose='user-operated official verification and one send request')
-        # Context request uses the same explicit proxy; compare before opening signup.
-        ip_response = context.request.get('https://api.ipify.org?format=json', timeout=budget_ms())
-        try:
-            actual_ip = ip_response.json().get('ip') if ip_response.status == 200 else None
-        except Exception:
-            actual_ip = None
+        page = context.pages[0] if (plain_edge and context.pages) else context.new_page()
+        # Exit check must use the browser's own proxy; Playwright's request context bypasses it.
+        if plain_edge:
+            try:
+                page.goto('https://api.ipify.org?format=json', wait_until='domcontentloaded',
+                          timeout=budget_ms())
+                actual_ip = json.loads(page.inner_text('body')).get('ip')
+            except Exception:
+                actual_ip = None
+        else:
+            ip_response = context.request.get('https://api.ipify.org?format=json', timeout=budget_ms())
+            try:
+                actual_ip = ip_response.json().get('ip') if ip_response.status == 200 else None
+            except Exception:
+                actual_ip = None
         if actual_ip != expected_ip:
             raise HumanVerificationError('BROWSER_EXIT_MISMATCH', '临时浏览器出口与 HTTP 出口不同或核验失败；未发码，请使用固定出口代理。')
         evidence.event('browser_exit_verified', exitIp=actual_ip)
-        page = context.new_page()
         page.goto(APP + '/signup', wait_until='domcontentloaded', timeout=budget_ms())
         print('ACTION_REQUIRED=若临时 Edge 出现人机验证，请手动完成；不要输入邮件验证码。', flush=True)
         print('SIGNUP_EMAIL=程序会在官方页面填入本轮邮箱并提交；不操作验证题目。', flush=True)
@@ -273,6 +343,16 @@ def verify_and_send(*, email, device_id, client, evidence, proxy_url, expected_i
                 closed['driver'] = True
             except Exception as exc:
                 evidence.event('browser_cleanup_error', resource='driver', error=type(exc).__name__)
+        if edge_process is not None:
+            try:
+                edge_process.terminate()
+                edge_process.wait(timeout=15)
+            except Exception:
+                try:
+                    edge_process.kill()
+                except Exception as exc:
+                    evidence.event('browser_cleanup_error', resource='edge_process',
+                                   error=type(exc).__name__)
         evidence.write('browser-cleanup.json', closed)
         evidence.event('browser_closed', **closed)
     if not all(closed.values()):

@@ -137,6 +137,23 @@ class HttpSignupTests(unittest.TestCase):
         self.assertTrue(all(url.params['$orderby'] == 'receivedDateTime desc' for url in queries))
         self.assertNotIn('<code>', (self.ev.directory / 'events.jsonl').read_text())
 
+    def test_code_from_full_body_when_preview_truncated(self):
+        message = {'id': 'm1', 'receivedDateTime': '2026-10-18T02:14:10Z',
+                   'from': {'emailAddress': {'address': 'updates.notion.com'.join(['', ''])[:0] or 'notify@makenotion.com'}},
+                   'subject': 'Your Notion signup code', 'bodyPreview': 'Enter this code to continue...'}
+        self.assertIsNone(app.GraphMailbox.extract(message))
+        html = '<html><body><p>Enter this code:</p><div><span>98</span><span>7654</span></div></body></html>'
+        mailbox = app.GraphMailbox({'email': 'u@example.com'},
+                                   self.wire(lambda r: httpx.Response(200, json={'body': {'content': html}}), 'microsoft'))
+        mailbox.token = 'access'
+        plain = mailbox.body_text('m1')
+        self.assertEqual(app.GraphMailbox.extract_from(message, plain), '987654')
+
+    def test_code_extraction_rejects_foreign_sender_body(self):
+        message = {'id': 'm2', 'from': {'emailAddress': {'address': 'evil@example.com'}},
+                   'subject': 'Your code', 'bodyPreview': ''}
+        self.assertIsNone(app.GraphMailbox.extract_from(message, 'code <code>'))
+
     def test_mail_folder_discovery_covers_children_and_dedups(self):
         calls = []
         def handler(request):

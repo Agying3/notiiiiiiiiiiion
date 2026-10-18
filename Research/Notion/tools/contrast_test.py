@@ -153,6 +153,26 @@ def run_group(label: str, email: str, proxy_index: int, proxy_url: str | None = 
     return record
 
 
+def pick_email(filename: str, require_active: bool = False) -> str:
+    """Pick an unused account from one pool file, optionally requiring mail history."""
+    used = used_emails()
+    candidates = []
+    for line in (ROOT / filename).read_text(encoding='utf-8-sig').splitlines():
+        fields = [x.strip() for x in line.strip().split('----')]
+        if len(fields) >= 4 and fields[0].lower() not in used:
+            candidates.append(fields[0])
+    if not require_active:
+        if not candidates:
+            raise SystemExit('NO_UNUSED_EMAIL_IN_' + filename)
+        return candidates[-1]
+    for email in candidates:
+        size = mailbox_size(email)
+        print(f'PROBE {email[:2]}*** size={size}', flush=True)
+        if size:
+            return email
+    raise SystemExit('NO_ACTIVE_EMAIL_IN_' + filename)
+
+
 def main() -> int:
     plan = sys.argv[1:] or ['A', 'B', 'C']
     previous = json.loads((PRIVATE / 'hybrid-test-reservations.private.jsonl')
@@ -170,6 +190,8 @@ def main() -> int:
             email, index, proxy_url = fresh_email(), 0, LOCAL_PROXY
         elif label == 'E':
             email, index, proxy_url = active_email(), 11, None
+        elif label == 'F':
+            email, index, proxy_url = pick_email('Hotmail_37_Account.txt'), 0, LOCAL_PROXY
         else:
             raise SystemExit('UNKNOWN_GROUP')
         if proxy_url is None and not check_proxy(index):

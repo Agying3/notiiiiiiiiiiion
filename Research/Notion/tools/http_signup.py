@@ -224,16 +224,35 @@ class GraphMailbox:
 
     @staticmethod
     def extract(message: dict) -> str | None:
+        return GraphMailbox.extract_from(message)
+
+    @staticmethod
+    def extract_from(message: dict, full_body: str = '') -> str | None:
         address = str((message.get('from') or {}).get('emailAddress', {}).get('address', ''))
         domain = address.rsplit('@', 1)[-1].casefold()
         if domain not in {'makenotion.com', 'notion.so', 'notion.com'}:
             return None
         subject = str(message.get('subject', ''))
         preview = str(message.get('bodyPreview', ''))
-        if not re.search(r'code|验证码|校验码|passcode|otp', subject + '\n' + preview, re.I):
+        full_body = full_body or ''
+        if not re.search(r'code|验证码|校验码|passcode|otp', subject + '\n' + preview + '\n' + full_body, re.I):
             return None
-        match = CODE.search(subject + '\n' + preview)
-        return match.group(1) if match else None
+        for text in (subject + '\n' + preview, full_body):
+            match = CODE.search(text)
+            if match:
+                return match.group(1)
+        return None
+
+    def body_text(self, message_id: str) -> str:
+        """Fetch the full body only when the preview did not expose a code."""
+        data = self.wire.json('GET', GRAPH + f'/me/messages/{message_id}',
+                              params={'$select': 'body'},
+                              headers={'Authorization': 'Bearer ' + self.token})
+        body = data.get('body') or {}
+        content = str(body.get('content', ''))
+        # Strip tags; markup may split one code across spans, so rejoin digits.
+        plain = re.sub(r'<[^>]+>', ' ', content)
+        return re.sub(r'(?<=\d)\s+(?=\d)', '', plain)
 
     def wait(self, since: datetime, seconds: int, poll: float) -> str | None:
         until = min(self.wire.deadline, time.monotonic() + seconds)
@@ -248,6 +267,14 @@ class GraphMailbox:
                 if received < since - timedelta(seconds=10):
                     continue
                 code = self.extract(message)
+                if not code and self.extract(message) is None:
+                    # {意图：预览可能不含验证码；仅在发件域匹配时才拉完整正文，避免无谓请求。}
+                    address = str((message.get('from') or {}).get('emailAddress', {}).get('address', ''))
+                    if address.rsplit('@', 1)[-1].casefold() in {'makenotion.com', 'notion.so', 'notion.com'}:
+                        try:
+                            code = self.extract_from(message, self.body_text(message['id']))
+                        except StopRun:
+                            code = None
                 if code:
                     self.wire.evidence.secrets.append(code)
                     self.seen.add(message['id'])
@@ -405,7 +432,8 @@ def execute(args: argparse.Namespace, evidence: Evidence) -> dict:
                     result = verify_and_send(email=email, device_id=device_id,
                         client=notion_client, evidence=evidence, proxy_url=proxy,
                         expected_ip=summary['exitIp'], deadline=deadline,
-                        timeout=args.human_timeout, utc_now=lambda: iso(now()))
+                        timeout=args.human_timeout, utc_now=lambda: iso(now()),
+                        plain_edge=getattr(args, 'plain_edge', False))
                 except HumanVerificationError as exc:
                     raise StopRun(exc.reason, exc.help_text, exc.exit_code) from exc
                 import_cookies(notion_client, result.browser_cookies)
@@ -502,6 +530,8 @@ def parser() -> argparse.ArgumentParser:
     p.add_argument('--preflight-only', action='store_true', help='check HTTP and mailbox only; do not send code or create account')
     p.add_argument('--human-verification', action='store_true', help='open ordinary Edge for user-operated official verification/send only')
     p.add_argument('--human-timeout', type=int, default=180, help='maximum seconds for manual verification, also bounded by deadline')
+    p.add_argument('--plain-edge', action='store_true',
+                   help='launch Edge as a normal process and attach over CDP (no automation switches)')
     p.add_argument('--name')
     p.add_argument('--client-version', default='', help='optional current version; otherwise detect from signup HTML')
     p.add_argument('--mail-wait', type=int, default=180)
