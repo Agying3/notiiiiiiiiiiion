@@ -52,6 +52,7 @@ notion-signup-capture.md  早期完整链路记录
 - `human_verification.py`：可选的人工验证桥接（普通 Edge 经 CDP 附着），仅承担官方验证与一次发码。
 - `contrast_test.py`：对照实验驱动，单次发码、独立进程、逐组留痕。
 - `test_*.py`：离线测试，不联网、不启动注册。
+- `browser_launch.py`：统一浏览器入口。**默认用普通 Edge**；只有本机装了 CloakBrowser 才启用指纹模式，未安装则自动忽略指纹参数。
 
 ```powershell
 python -m unittest discover -s Research/Notion/tools -p "test_*.py"

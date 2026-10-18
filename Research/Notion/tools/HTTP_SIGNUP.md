@@ -68,7 +68,7 @@ python -m unittest discover -s Research/Notion/tools -p test_human_verification.
 
 ## 状态
 
-- 代码是独立 Python 命令行程序，不导入浏览器库，不启动 Edge、Playwright、CloakBrowser 或终端子进程。
+- 主流程 `http_signup.py` 是独立 Python 命令行程序，自身不导入浏览器库；只有显式启用混合模式时，才由 `human_verification.py` 启动普通 Edge。早期抓包脚本经由 `browser_launch.py` 启动浏览器：默认普通 Edge，装了指纹浏览器才会启用指纹模式。
 - 按 run12 成功抓包实现请求顺序；**离线模拟通过不等于真实注册成功**。
 - 2026-10-18 实际只读检查：第一步 api.ipify.org 连接出现 `ConnectError`，已停止；未发验证码、未创建账号、未启动浏览器。现场留痕位于 `Research/Notion/local/http-signup/20261018T<code>Z-d72de88b/`。
 - 本轮没有激活试用或提交支付。Offer 响应仅保存为数据，不据此断言前端显示了几天试用。

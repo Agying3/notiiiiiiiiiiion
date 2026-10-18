@@ -7,7 +7,7 @@ from datetime import datetime
 from pathlib import Path
 import sys
 import httpx
-from cloakbrowser import launch_persistent_context
+from browser_launch import launch_persistent_context, HAVE_CLOAKBROWSER
 from capture_identity import fingerprint_seed
 
 sys.stdout.reconfigure(encoding='utf-8', errors='replace', line_buffering=True)

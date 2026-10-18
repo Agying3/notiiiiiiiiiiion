@@ -20,7 +20,7 @@ import time
 from datetime import datetime, timezone
 
 import httpx
-from cloakbrowser import launch_persistent_context
+from browser_launch import launch_persistent_context, HAVE_CLOAKBROWSER
 
 if hasattr(sys.stdout, 'reconfigure'):
     sys.stdout.reconfigure(encoding='utf-8', errors='replace', line_buffering=True)

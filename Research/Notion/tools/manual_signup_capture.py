@@ -13,7 +13,7 @@ import time
 from datetime import datetime, timezone
 
 import httpx
-from cloakbrowser import launch
+from browser_launch import launch, HAVE_CLOAKBROWSER
 
 if hasattr(sys.stdout, 'reconfigure'):
     sys.stdout.reconfigure(encoding='utf-8', errors='replace', line_buffering=True)
