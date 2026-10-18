@@ -20,3 +20,11 @@ notion-captures/
 *.har
 playwright-trace.zip
 *profile*/
+
+# 第三方目录与打包残留（已从历史移除，不应再次入库）
+mailviewer-local/
+cloakbrowser-extracted/
+senseauto-2.0.0/
+mailviewer-*.png
+*proxies.txt
+*proxies*.txt
