@@ -6,6 +6,9 @@ must not share HTTP state, and the per-group budget must be enforceable.
 
 Usage: python contrast_test.py A B C
 """
+
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Copyright (C) 2026 YG
 from __future__ import annotations
 
 import json

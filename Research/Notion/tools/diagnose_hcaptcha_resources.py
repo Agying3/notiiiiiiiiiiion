@@ -1,4 +1,7 @@
 """Read-only same-proxy resource diagnosis in a separate browser profile. No registration POSTs."""
+
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Copyright (C) 2026 YG
 import json
 from datetime import datetime
 from pathlib import Path

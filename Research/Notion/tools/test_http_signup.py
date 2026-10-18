@@ -1,4 +1,7 @@
 """Offline tests. MockTransport prevents network, browsers and real account creation."""
+
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Copyright (C) 2026 YG
 import argparse
 import contextlib
 from datetime import datetime, timezone

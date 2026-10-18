@@ -3,6 +3,9 @@
   python fetch_notion_code.py <email>            # 轮询收码（默认180秒）
   python fetch_notion_code.py <email> --once     # 只查一次
 """
+
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Copyright (C) 2026 YG
 import argparse
 import json
 import re

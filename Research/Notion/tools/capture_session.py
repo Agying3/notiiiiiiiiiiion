@@ -6,6 +6,9 @@ Control (without interrupting): put JSON in 00-session/commands.json, e.g.
   {"action":"reload"}
 Commands are consumed automatically; recording never stops between them.
 """
+
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Copyright (C) 2026 YG
 import base64
 import hashlib
 import json

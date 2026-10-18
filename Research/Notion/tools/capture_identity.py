@@ -1,4 +1,7 @@
 """Identity bookkeeping for repeatable manual capture runs; no proxy passwords saved here."""
+
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Copyright (C) 2026 YG
 import hashlib
 import json
 from pathlib import Path

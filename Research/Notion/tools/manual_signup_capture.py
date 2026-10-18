@@ -1,4 +1,7 @@
 """Headed manual signup capture. Local raw files contain private session data."""
+
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Copyright (C) 2026 YG
 import base64
 import hashlib
 import json

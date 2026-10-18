@@ -1,4 +1,7 @@
 """Fully offline browser handoff tests: no actual Edge, requests or captcha service."""
+
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Copyright (C) 2026 YG
 import json
 from pathlib import Path
 import tempfile

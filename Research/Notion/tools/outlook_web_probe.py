@@ -4,6 +4,9 @@ Uses a plain Edge window attached over CDP so the session is a normal browser
 session, then prints the newest messages. Credentials come from the local pool
 file and are never printed.
 """
+
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Copyright (C) 2026 YG
 from __future__ import annotations
 
 import json
