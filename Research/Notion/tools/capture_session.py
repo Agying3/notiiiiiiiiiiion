@@ -239,5 +239,10 @@ finally:
         context.close()
     except Exception:
         pass
+    if pw is not None:
+        try:
+            pw.stop()
+        except Exception:
+            pass
     save(SESSION / 'final-summary.json', {'requestCount': counter[0], 'harExists': (OUT / 'full-network.har').exists()})
     print('CAPTURE_FINALIZED=' + str(OUT), flush=True)
