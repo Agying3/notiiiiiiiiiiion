@@ -164,7 +164,8 @@ class HumanVerificationTests(unittest.TestCase):
         with self.assertRaises(bridge.HumanVerificationError) as caught:
             self.run_fake(runtime)
         self.assertEqual(caught.exception.reason, 'BROWSER_EXIT_MISMATCH')
-        runtime[3].new_page.assert_not_called()
+        self.assertFalse(any('signup' in str(c) for c in runtime[4].method_calls))
+        self.assertNotIn('browser_send_request', (self.ev.directory / 'events.jsonl').read_text())
         self.check_cleanup(runtime)
 
     def test_user_close_stops_and_cleans_up(self):

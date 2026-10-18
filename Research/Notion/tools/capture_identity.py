@@ -15,7 +15,7 @@ def fingerprint_seed(proxy_index, host, port):
 
 def used_hosts_and_ips(root):
     # Earlier sessions predate the registry. Explicitly include both observed exits.
-    used = {'<ip>', '<ip>'}
+    used: set[str] = set()
     legacy = root / 'used_proxies.txt'
     if legacy.exists():
         for line in legacy.read_text(encoding='utf-8-sig').splitlines():

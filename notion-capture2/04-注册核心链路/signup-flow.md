@@ -50,7 +50,7 @@
 // 响应
 {"csrfState":"[REDACTED_NOTION_TOKEN]…"}
 ```
-> **注意**：`deviceId` = `notion_browser_id` Cookie 值（9055129d-…），即设备指纹在页面加载时生成、随发码请求上报
+> **注意**：`deviceId` = `notion_browser_id` Cookie 值（示例值），即设备指纹在页面加载时生成、随发码请求上报
 
 ### 邮箱域校验批（#462-466）
 `isUserDomainJoinable` / `isEmailEducation` / `validateUserCanCreateWorkspace` / `getVerifiedEmailDomain` / `getGeoIpLocation` —— 并行判定

@@ -12,7 +12,7 @@
 | 03-hcaptcha | hCaptcha 全生命周期：sitekey、checksiteconfig、hsw.js PoW、getcaptcha、challengeToken | hcaptcha-flow.md |
 | 04-注册核心链路 | getLoginOptions → sendTemporaryPassword → loginWithEmail → onboarding 全时序+请求/响应体 | signup-flow.md |
 | 05-验证码获取 | 收码方式、账号池状态、邮件要点 | email-code.md |
-| 06-cookies | 登录后 61 个 Cookie 全量（Notion 会话/指纹/hCaptcha/Cloudflare/第三方） | cookies-all.md |
+| 06-cookies | 因含会话凭据，已从本仓库移除，不再发布 | — |
 | 07-storage | localStorage + sessionStorage（含跨账号残留实证） | storage.md |
 | 08-对照总结 | #1 vs #2 对照、注册协议整合、防自动化点、批量注册防关联要点 | comparison.md |
 

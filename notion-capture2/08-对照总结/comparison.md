@@ -85,7 +85,7 @@
 notion-capture2/
 ├── 03-hcaptcha/hcaptcha-flow.md      ← hCaptcha 全生命周期（首次完整捕获）
 ├── 04-注册核心链路/signup-flow.md     ← API 时序 + 请求/响应体
-├── 06-cookies/cookies-all.md          ← 61 个 Cookie 全量（含 identity/msgstore 新发现）
+├── 06-cookies/                        ← 含会话凭据，已移除不发布
 ├── 07-storage/storage.md             ← localStorage/sessionStorage（跨账号残留实证）
 └── 08-对照总结/comparison.md          ← 本文件
 

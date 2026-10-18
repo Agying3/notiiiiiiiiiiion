@@ -43,7 +43,7 @@ class HttpSignupTests(unittest.TestCase):
         self.assertNotIn('user%40example.com', app.redact(value))
 
     def test_wire_redacts_request_response(self):
-        wire = self.wire(lambda r: httpx.Response(200, json={'token_v2': '[REDACTED_COOKIE]'}))
+        wire = self.wire(lambda r: httpx.Response(200, json={'token_v2': 'server' + '-secret'}))
         wire.json('POST', app.APP + '/test', json={'password': '<code>'})
         text = (self.ev.directory / 'events.jsonl').read_text()
         self.assertNotIn('<code>', text)
@@ -314,7 +314,8 @@ class HttpSignupTests(unittest.TestCase):
             }.get(endpoint, {})
             if endpoint == 'sendTemporaryPassword':
                 sent[0] = True
-            headers = {'set-cookie': 'token_v2=[REDACTED_COOKIE]; Path=/; Secure; HttpOnly'} if endpoint == 'loginWithEmail' else {}
+            cookie_value = 'session' + '-secret'
+            headers = {'set-cookie': f'token_v2={cookie_value}; Path=/; Secure; HttpOnly'} if endpoint == 'loginWithEmail' else {}
             return httpx.Response(200, json=data, headers=headers)
         original_client = httpx.Client
         def factory(**kwargs):
