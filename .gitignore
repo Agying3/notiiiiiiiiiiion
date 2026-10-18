@@ -8,6 +8,7 @@ used_proxies.txt
 *.private.jsonl
 
 # 本地运行产物
+Research/Notion/captures/
 Research/Notion/local/
 Research/Notion/tmp/
 __pycache__/
@@ -22,3 +23,8 @@ playwright-trace.zip
 
 # 与本研究无关的本地工具目录
 /tools/
+
+# 本地遗留目录
+senseauto-2.0.0/
+cloakbrowser-extracted/
+mailviewer-local/

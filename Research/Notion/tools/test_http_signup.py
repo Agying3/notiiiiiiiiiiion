@@ -14,6 +14,7 @@ import httpx
 import http_signup as app
 
 
+
 class HttpSignupTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
@@ -32,10 +33,10 @@ class HttpSignupTests(unittest.TestCase):
         return app.Wire(client, self.ev, time.monotonic() + 30, service)
 
     def test_redaction(self):
-        data = {'password': '<code>', 'loginOptionsToken': 'secret', 'csrfState': 'state',
-                'nested': {'authorization': 'Bearer x'}, 'text': 'user@example.com <code> v02:abc:def'}
+        data = {'password': '384920', 'loginOptionsToken': 'secret', 'csrfState': 'state',
+                'nested': {'authorization': 'Bearer x'}, 'text': 'user@example.com 384920 v02:abc:def'}
         text = json.dumps(app.redact(data))
-        for secret in ('<code>', 'secret', 'user@example.com', 'v02:abc:def', 'Bearer x'):
+        for secret in ('384920', 'secret', 'user@example.com', 'v02:abc:def', 'Bearer x'):
             self.assertNotIn(secret, text)
 
     def test_encoded_email_redaction(self):
@@ -44,9 +45,9 @@ class HttpSignupTests(unittest.TestCase):
 
     def test_wire_redacts_request_response(self):
         wire = self.wire(lambda r: httpx.Response(200, json={'token_v2': 'server' + '-secret'}))
-        wire.json('POST', app.APP + '/test', json={'password': '<code>'})
+        wire.json('POST', app.APP + '/test', json={'password': '384920'})
         text = (self.ev.directory / 'events.jsonl').read_text()
-        self.assertNotIn('<code>', text)
+        self.assertNotIn('384920', text)
         self.assertNotIn('server-secret', text)
 
     def test_rate_limit_stops_after_one_request(self):
@@ -96,10 +97,10 @@ class HttpSignupTests(unittest.TestCase):
 
     def test_sender_must_be_notion_domain(self):
         message = {'from': {'emailAddress': {'address': 'attacker@example.com'}},
-                   'subject': 'Notion signup code <code>', 'bodyPreview': ''}
+                   'subject': 'Notion signup code 384920', 'bodyPreview': ''}
         self.assertIsNone(app.GraphMailbox.extract(message))
         message['from']['emailAddress']['address'] = 'notify@makenotion.com'
-        self.assertEqual(app.GraphMailbox.extract(message), '<code>')
+        self.assertEqual(app.GraphMailbox.extract(message), '384920')
         message['from']['emailAddress']['address'] = 'notify@makenotion.com.attacker.test'
         self.assertIsNone(app.GraphMailbox.extract(message))
 
@@ -124,18 +125,18 @@ class HttpSignupTests(unittest.TestCase):
             count[0] += 1
             messages = [{'id': 'old', 'receivedDateTime': '2026-10-18T02:14:09Z',
                 'from': {'emailAddress': {'address': 'notify@makenotion.com'}},
-                'subject': 'Your signup code <code>'}]
+                'subject': 'Your signup code 384920'}]
             if count[0] > 1:
                 messages.insert(0, {'id': 'new', 'receivedDateTime': '2026-10-18T02:14:10Z',
                     'from': {'emailAddress': {'address': 'notify@makenotion.com'}},
-                    'subject': 'Your signup code <code>'})
+                    'subject': 'Your signup code 384920'})
             return httpx.Response(200, json={'value': messages})
         mailbox.wire = self.wire(handler, 'microsoft')
         mailbox.baseline()
         result = mailbox.wait(app.parse_time('2026-10-18T02:14:09Z'), 1, 1)
-        self.assertEqual(result, '<code>')
+        self.assertEqual(result, '384920')
         self.assertTrue(all(url.params['$orderby'] == 'receivedDateTime desc' for url in queries))
-        self.assertNotIn('<code>', (self.ev.directory / 'events.jsonl').read_text())
+        self.assertNotIn('384920', (self.ev.directory / 'events.jsonl').read_text())
 
     def test_code_from_full_body_when_preview_truncated(self):
         message = {'id': 'm1', 'receivedDateTime': '2026-10-18T02:14:10Z',
@@ -152,7 +153,7 @@ class HttpSignupTests(unittest.TestCase):
     def test_code_extraction_rejects_foreign_sender_body(self):
         message = {'id': 'm2', 'from': {'emailAddress': {'address': 'evil@example.com'}},
                    'subject': 'Your code', 'bodyPreview': ''}
-        self.assertIsNone(app.GraphMailbox.extract_from(message, 'code <code>'))
+        self.assertIsNone(app.GraphMailbox.extract_from(message, 'code 384920'))
 
     def test_mail_folder_discovery_covers_children_and_dedups(self):
         calls = []
@@ -298,7 +299,7 @@ class HttpSignupTests(unittest.TestCase):
                 if sent[0]:
                     messages = [{'id': 'new', 'receivedDateTime': app.iso(app.now()),
                         'from': {'emailAddress': {'address': 'notify@makenotion.com'}},
-                        'subject': 'Your signup code <code>', 'bodyPreview': 'code <code>'}]
+                        'subject': 'Your signup code 384920', 'bodyPreview': 'code 384920'}]
                 return httpx.Response(200, json={'value': messages})
             if path == '/signup':
                 return httpx.Response(200, text='<html>23.13.20261017.2209</html>')
@@ -342,7 +343,7 @@ class HttpSignupTests(unittest.TestCase):
         sends = [r for r in requests if r.url.path.endswith('sendTemporaryPassword')]
         self.assertEqual(len(sends), 0 if preflight or hybrid else 1)
         text = (self.ev.directory / 'events.jsonl').read_text()
-        for secret in ('<code>', 'session-secret', 'fresh-token', 'fresh-state', 'user@example.com'):
+        for secret in ('384920', 'session-secret', 'fresh-token', 'fresh-state', 'user@example.com'):
             self.assertNotIn(secret, text)
         if not preflight:
             state = json.loads((self.ev.directory / 'session.private.json').read_text())

@@ -32,13 +32,13 @@ class FetchTests(unittest.TestCase):
         self.assertIsNone(load_account('nobody@example.com'))
 
     def test_extract_code_from_notion_mail(self):
-        self.assertEqual(extract_code('Your Notion login code', '你的验证码是 <code>，10分钟内有效'), '<code>')
+        self.assertEqual(extract_code('Your Notion login code', '你的验证码是 384920，10分钟内有效'), '384920')
 
     def test_extract_code_ignores_non_notion_noise(self):
-        self.assertIsNone(extract_code('订单通知', '订单号 <code>'))
+        self.assertIsNone(extract_code('订单通知', '订单号 384920'))
 
     def test_six_digit_pattern(self):
-        self.assertEqual(CODE_RE.search('code: <code>').group(1), '<code>')
+        self.assertEqual(CODE_RE.search('code: 384920').group(1), '384920')
         self.assertIsNone(CODE_RE.search('code: 12345'))
 
 if __name__ == '__main__':

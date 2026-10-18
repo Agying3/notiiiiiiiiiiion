@@ -83,7 +83,7 @@ python -m pip install -r Research/Notion/tools/requirements-http-signup.txt
 
 ## 输入
 
-显式选择一个邮箱，不扫描账号池批量注册。默认从根目录两个账号文件中查找该邮箱：
+显式选择一个邮箱，不扫描账号池批量注册。默认从根目录的 `*-Account.txt` 文件中查找该邮箱：
 
 ```text
 邮箱----密码----OAuth client_id----refresh_token----辅助邮箱----辅助密码

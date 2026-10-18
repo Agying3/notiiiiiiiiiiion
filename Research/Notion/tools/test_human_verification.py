@@ -12,6 +12,7 @@ import http_signup as app
 import human_verification as bridge
 
 
+
 class HumanVerificationTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
@@ -51,7 +52,7 @@ class HumanVerificationTests(unittest.TestCase):
     def test_official_native_uuid_can_be_adopted_without_rewriting(self):
         guard = bridge.SendGuard('user@example.com', 'seed', self.ev,
             lambda: app.iso(app.now()), allow_native_device=True)
-        request = self.request(device='<code>78-1234-1234-1234-<code>789abc')
+        request = self.request(device='12345678-1234-1234-1234-123456789abc')
         route = Mock()
         guard.route(route, request)
         route.continue_.assert_called_once()

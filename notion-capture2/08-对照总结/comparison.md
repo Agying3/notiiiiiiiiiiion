@@ -71,11 +71,13 @@
 4. **心跳 + 遥测前置**：/api/v3/ping ~10s 一次；Splunk/Statsig/AMP/gist 全套在注册前已上报（含 sessionId、device 指纹）。
 5. **Cookie+localStorage 双层指纹**：清 Cookie 不清 localStorage —— AMP sessionId、spaceCellMapping 跨账号残留，可作多账号关联检测信号（服务端侧对应 session_binding）。
 
-## 批量注册防关联要点（两轮对照结论）
+## 跨会话关联信号（观察记录，非操作指南）
 
-- 每号必须新 BrowserContext（非同 context 清 cookie），否则 localStorage 的 AMP sessionId / 空间映射表直接暴露关联
+> 以下仅记录"哪些状态会在会话之间累积"，用于理解风控观测面，不提供多账号操作方案。
+
+- 同一 context 内不同账号会共享 localStorage；其中 AMP sessionId 与空间映射表可被用作关联信号
 - notion_browser_id 每次加载新生成（可控），但 __Host-session_binding 为服务端下发绑定，无法客户端重置
-- hCaptcha hmt_id + __cf_bm 在 hcaptcha.com 域持久，跨注册累积风控画像 —— 每号需清或隔离 hcaptcha 域 cookie
+- hCaptcha 的 hmt_id 与 __cf_bm 在 hcaptcha.com 域持久化，会跨会话累积，因而可作为风控侧的关联特征
 - 出口 IP：Notion 用 getGeoIpLocation + api.ipify.org 双重采集；Cloudflare __cf_bm 绑定 IP+UA
 - signupMethod=other / signupMethodTimestamp 写入 sessionStorage，作为服务端事件的时间锚点
 

@@ -48,4 +48,4 @@
 | `AMP_notion.sessionId` | 1792249112839 | 1792249112839（**相同！** 清 Cookie 未清 localStorage，AMP 会话跨注册保留） |
 | `spaceCellMapping` | 仅 #1 工作区 | #1 + #2 工作区共存 |
 
-**结论**：`clearCookies()` 不清 localStorage。跨账号注册若要完全隔离，需 `localStorage.clear()` + `sessionStorage.clear()` 或全新 BrowserContext。这是批量注册防关联的关键点——AMP sessionId 与空间映射表会泄露多账号关联。
+**观察**：`clearCookies()` 不清 localStorage。因此 localStorage 中的会话痕迹会跨会话保留，这也解释了站点为何能据此识别同一来源。
