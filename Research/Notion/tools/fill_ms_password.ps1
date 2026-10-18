@@ -1,8 +1,12 @@
-﻿$ErrorActionPreference='Stop'
+param(
+  [string]$AccountFile = 'accounts.txt',
+  [string]$EmailPrefix = ''
+)
+$ErrorActionPreference='Stop'
 Add-Type -AssemblyName UIAutomationClient
 Add-Type -AssemblyName UIAutomationTypes
-$t=[System.IO.File]::ReadAllText('H:\toos\notion\Outlook_37_Account.txt',[System.Text.Encoding]::UTF8)
-$line=($t -split "`r?`n" | Where-Object { $_ -like '[REDACTED_EMAIL]*' } | Select-Object -First 1)
+$t=[System.IO.File]::ReadAllText($AccountFile,[System.Text.Encoding]::UTF8)
+$line=($t -split "`r?`n" | Where-Object { $_ -like ($EmailPrefix + '*') } | Select-Object -First 1)
 $cred=(($line -split '----')[1]).Trim()
 $procs=Get-CimInstance Win32_Process -Filter "name='msedge.exe'" | Where-Object { $_.CommandLine -like '*playwright*' -or $_.CommandLine -like '*mcp*' }
 $done=$false
