@@ -24,6 +24,8 @@ PROXIES = ROOT / 'proxies.txt'
 ACCOUNTS = ('Outlook_37_Account.txt', 'Hotmail_37_Account.txt')
 MAIL_WAIT = 150
 DEADLINE = 260
+LONG_WAIT = 600
+LONG_DEADLINE = 780
 
 
 def used_emails() -> set[str]:
@@ -72,7 +74,46 @@ def check_proxy(index: int) -> str | None:
 LOCAL_PROXY = 'http://127.0.0.1:18081'
 
 
-def run_group(label: str, email: str, proxy_index: int, proxy_url: str | None = None) -> dict:
+def mailbox_size(email: str) -> int | None:
+    """Return total message count for an account, or None when credentials fail."""
+    record = next((line for name in ACCOUNTS
+                   for line in (ROOT / name).read_text(encoding='utf-8-sig').splitlines()
+                   if line.strip().split('----')[0].strip().lower() == email.lower()), None)
+    if not record:
+        return None
+    fields = [x.strip() for x in record.split('----')]
+    account = {'email': fields[0], 'client_id': fields[2], 'refresh_token': fields[3]}
+    sys.path.insert(0, str(TOOLS))
+    import http_signup as app
+    directory = PRIVATE / ('probe-' + datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ'))
+    evidence = app.Evidence(directory)
+    try:
+        with httpx.Client(trust_env=False, follow_redirects=False) as client:
+            wire = app.Wire(client, evidence, __import__('time').monotonic() + 60, 'microsoft')
+            mailbox = app.GraphMailbox(account, wire)
+            return len(mailbox.messages())
+    except Exception:
+        return None
+
+
+def active_email() -> str:
+    """Pick an unused account whose mailbox is confirmed non-empty."""
+    used = used_emails()
+    for name in ACCOUNTS:
+        for line in reversed((ROOT / name).read_text(encoding='utf-8-sig').splitlines()):
+            fields = [x.strip() for x in line.strip().split('----')]
+            if len(fields) < 4 or fields[0].lower() in used:
+                continue
+            size = mailbox_size(fields[0])
+            print(f'PROBE {fields[0][:2]}*** size={size}', flush=True)
+            if size:
+                return fields[0]
+    raise SystemExit('NO_ACTIVE_EMAIL')
+
+
+
+def run_group(label: str, email: str, proxy_index: int, proxy_url: str | None = None,
+              wait: int = MAIL_WAIT, deadline: int = DEADLINE) -> dict:
     environment = dict(os.environ)
     if proxy_url:
         environment['NOTION_HTTP_PROXY'] = proxy_url
@@ -85,13 +126,14 @@ def run_group(label: str, email: str, proxy_index: int, proxy_url: str | None = 
     command = [sys.executable, '-X', 'utf8', str(TOOLS / 'http_signup.py'),
                '--email', email, *network,
                '--human-verification', '--human-timeout', '120',
-               '--send-attempts', '1', '--mail-wait', str(MAIL_WAIT),
-               '--deadline', str(DEADLINE)]
+               '--send-attempts', '1', '--mail-wait', str(wait),
+               '--deadline', str(deadline)]
+
 
     started = datetime.now(timezone.utc)
     print(f'GROUP_{label}_START email={email[:2]}*** proxyIndex={proxy_index}', flush=True)
     completed = subprocess.run(command, env=environment, capture_output=True, text=True,
-                               timeout=DEADLINE + 90, cwd=str(ROOT))
+                               timeout=deadline + 120, cwd=str(ROOT))
     evidence = ''
     for line in completed.stdout.splitlines():
         if line.startswith('EVIDENCE_DIR='):
@@ -126,6 +168,8 @@ def main() -> int:
             email, index = fresh_email(), previous['proxyIndex']
         elif label == 'D':
             email, index, proxy_url = fresh_email(), 0, LOCAL_PROXY
+        elif label == 'E':
+            email, index, proxy_url = active_email(), 11, None
         else:
             raise SystemExit('UNKNOWN_GROUP')
         if proxy_url is None and not check_proxy(index):
@@ -133,7 +177,8 @@ def main() -> int:
                             'email': email})
             print('GROUP_' + label + '_RESULT=proxy_dead', flush=True)
             continue
-        records.append(run_group(label, email, index, proxy_url))
+        wait, deadline = (LONG_WAIT, LONG_DEADLINE) if label == 'E' else (MAIL_WAIT, DEADLINE)
+        records.append(run_group(label, email, index, proxy_url, wait, deadline))
 
         with (PRIVATE / 'contrast-runs.private.jsonl').open('a', encoding='utf-8') as stream:
             stream.write(json.dumps(records[-1], ensure_ascii=False) + '\n')
