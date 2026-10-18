@@ -69,16 +69,25 @@ def check_proxy(index: int) -> str | None:
         return None
 
 
-def run_group(label: str, email: str, proxy_index: int) -> dict:
-    host, port, user, password = proxy_line(proxy_index)
+LOCAL_PROXY = 'http://127.0.0.1:18081'
+
+
+def run_group(label: str, email: str, proxy_index: int, proxy_url: str | None = None) -> dict:
     environment = dict(os.environ)
-    environment['NOTION_HTTP_PROXY'] = str(
-        httpx.URL('http://' + host + ':' + port, username=user, password=password))
+    if proxy_url:
+        environment['NOTION_HTTP_PROXY'] = proxy_url
+        network = ['--proxy-env', 'NOTION_HTTP_PROXY']
+    else:
+        host, port, user, password = proxy_line(proxy_index)
+        environment['NOTION_HTTP_PROXY'] = str(
+            httpx.URL('http://' + host + ':' + port, username=user, password=password))
+        network = ['--proxy-env', 'NOTION_HTTP_PROXY']
     command = [sys.executable, '-X', 'utf8', str(TOOLS / 'http_signup.py'),
-               '--email', email, '--proxy-env', 'NOTION_HTTP_PROXY',
+               '--email', email, *network,
                '--human-verification', '--human-timeout', '120',
                '--send-attempts', '1', '--mail-wait', str(MAIL_WAIT),
                '--deadline', str(DEADLINE)]
+
     started = datetime.now(timezone.utc)
     print(f'GROUP_{label}_START email={email[:2]}*** proxyIndex={proxy_index}', flush=True)
     completed = subprocess.run(command, env=environment, capture_output=True, text=True,
@@ -91,6 +100,7 @@ def run_group(label: str, email: str, proxy_index: int) -> dict:
     if evidence and Path(evidence).exists():
         summary = json.loads((Path(evidence) / 'summary.json').read_text(encoding='utf-8'))
     record = {'group': label, 'email': email, 'proxyIndex': proxy_index,
+              'network': proxy_url or 'datacenter_proxy',
               'startedAt': started.isoformat(), 'exitIp': summary.get('exitIp'),
               'status': summary.get('status'), 'stage': summary.get('stage'),
               'reason': summary.get('reason'), 'browserUsed': summary.get('browserUsed'),
@@ -107,20 +117,24 @@ def main() -> int:
                           .read_text(encoding='utf-8').splitlines()[-1])
     records = []
     for label in plan:
+        proxy_url = None
         if label == 'A':
             email, index = fresh_email(), 11
         elif label == 'B':
             email, index = previous['email'], 12
         elif label == 'C':
             email, index = fresh_email(), previous['proxyIndex']
+        elif label == 'D':
+            email, index, proxy_url = fresh_email(), 0, LOCAL_PROXY
         else:
             raise SystemExit('UNKNOWN_GROUP')
-        if not check_proxy(index):
+        if proxy_url is None and not check_proxy(index):
             records.append({'group': label, 'status': 'proxy_dead', 'proxyIndex': index,
                             'email': email})
             print('GROUP_' + label + '_RESULT=proxy_dead', flush=True)
             continue
-        records.append(run_group(label, email, index))
+        records.append(run_group(label, email, index, proxy_url))
+
         with (PRIVATE / 'contrast-runs.private.jsonl').open('a', encoding='utf-8') as stream:
             stream.write(json.dumps(records[-1], ensure_ascii=False) + '\n')
     print('CONTRAST_DONE=' + json.dumps(
