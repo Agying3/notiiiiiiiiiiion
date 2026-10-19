@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
-# Copyright (C) 2026 YG
+# Copyright (C) 2026 tujue
 """统一的浏览器启动入口：默认用普通 Edge，仅当安装了 CloakBrowser 才启用指纹模式。
 
 早期抓包脚本直接 `from cloakbrowser import ...`，导致这个仓库在没装该商业工具时

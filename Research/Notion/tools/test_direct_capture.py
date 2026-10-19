@@ -1,6 +1,6 @@
 
 # SPDX-License-Identifier: AGPL-3.0-or-later
-# Copyright (C) 2026 YG
+# Copyright (C) 2026 tujue
 import unittest
 from pathlib import Path
 from direct_capture_options import options

@@ -5,7 +5,7 @@ The official page owns the challenge and one send request; HTTP owns login.
 """
 
 # SPDX-License-Identifier: AGPL-3.0-or-later
-# Copyright (C) 2026 YG
+# Copyright (C) 2026 tujue
 from __future__ import annotations
 
 from dataclasses import dataclass

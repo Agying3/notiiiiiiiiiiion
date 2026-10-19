@@ -85,6 +85,8 @@ python -m unittest discover -s Research/Notion/tools -p "test_*.py"
 
 ## 许可
 
+Copyright (C) 2026 tujue
+
 代码以 **GNU Affero General Public License v3.0** 发布，见 [LICENSE](LICENSE)。
 
 这是强传染性（copyleft）协议：分发修改版必须以同一协议开源；并且**如果把它作为网络服务对外提供**，也必须向使用者提供完整源码（AGPL 第 13 条）。商业使用需同样遵守上述义务。

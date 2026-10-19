@@ -8,7 +8,7 @@ Commands are consumed automatically; recording never stops between them.
 """
 
 # SPDX-License-Identifier: AGPL-3.0-or-later
-# Copyright (C) 2026 YG
+# Copyright (C) 2026 tujue
 import base64
 import hashlib
 import json

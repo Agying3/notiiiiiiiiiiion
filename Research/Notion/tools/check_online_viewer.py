@@ -1,7 +1,7 @@
 """Compare online viewer inbox with local result for the current signup mailbox."""
 
 # SPDX-License-Identifier: AGPL-3.0-or-later
-# Copyright (C) 2026 YG
+# Copyright (C) 2026 tujue
 import json
 import sys
 import time

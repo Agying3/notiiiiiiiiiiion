@@ -1,7 +1,7 @@
 """Read only the selected signup mailbox through the existing loopback viewer."""
 
 # SPDX-License-Identifier: AGPL-3.0-or-later
-# Copyright (C) 2026 YG
+# Copyright (C) 2026 tujue
 import json
 from pathlib import Path
 import sys

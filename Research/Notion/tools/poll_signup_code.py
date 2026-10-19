@@ -1,7 +1,7 @@
 """Poll only the current signup mailbox for a fresh Notion code and store it privately."""
 
 # SPDX-License-Identifier: AGPL-3.0-or-later
-# Copyright (C) 2026 YG
+# Copyright (C) 2026 tujue
 import json
 import sys
 import time
